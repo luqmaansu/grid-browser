@@ -1,10 +1,10 @@
 # Grid Browser
 
-A 3x3 grid browser built with Electron that displays 9 websites simultaneously with synchronized controls.
+A CxR grid browser built with Electron that displays 9 websites simultaneously with synchronized controls.
 
 ## Features
 
-- **3x3 Grid Layout**: View 9 websites at once
+- **CxR Grid Layout**: Arbitrary number of cols x rows
 - **Adjustable Zoom**: `Ctrl+Shift+=` / `Ctrl+-` to zoom in/out
 - **Y-Offset Control**: `Ctrl+↑` / `Ctrl+↓` to crop from top
 - **Hot Reload**: `F5` or `Ctrl+R` to reload

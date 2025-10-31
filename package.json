@@ -1,7 +1,7 @@
 {
   "name": "grid-browser",
   "version": "1.0.0",
-  "description": "3x3 Grid Browser using Electron",
+  "description": "Grid Browser using Electron",
   "main": "main.js",
   "scripts": {
     "start": "electron ."
