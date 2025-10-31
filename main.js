@@ -35,6 +35,28 @@ function createWindow() {
         },
         { type: 'separator' },
         {
+          label: 'Crop More from Top',
+          accelerator: 'CmdOrCtrl+Up',
+          click: () => {
+            mainWindow.webContents.send('offset-increase');
+          }
+        },
+        {
+          label: 'Crop Less from Top',
+          accelerator: 'CmdOrCtrl+Down',
+          click: () => {
+            mainWindow.webContents.send('offset-decrease');
+          }
+        },
+        {
+          label: 'Reset Crop',
+          accelerator: 'CmdOrCtrl+Home',
+          click: () => {
+            mainWindow.webContents.send('offset-reset');
+          }
+        },
+        { type: 'separator' },
+        {
           label: 'Zoom In',
           accelerator: 'CmdOrCtrl+=',
           click: () => {
@@ -76,6 +98,14 @@ function createWindow() {
     {
       label: 'Window',
       submenu: [
+        {
+          label: 'Toggle Fullscreen',
+          accelerator: 'F11',
+          click: () => {
+            mainWindow.setFullScreen(!mainWindow.isFullScreen());
+          }
+        },
+        { type: 'separator' },
         { role: 'minimize' },
         { role: 'close' }
       ]

@@ -44,38 +44,164 @@
             top: 0;
             left: 0;
         }
+
+        #refresh-indicator {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background-color: rgba(0, 0, 0, 0.2);
+            color: #fff;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            cursor: pointer;
+            z-index: 9999;
+            user-select: none;
+            transition: background-color 0.2s;
+        }
+
+        #refresh-indicator:hover {
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        #refresh-indicator:active {
+            background-color: rgba(50, 150, 255, 0.5);
+        }
     </style>
 </head>
 <body>
     <div class="grid-container">
-        <div class="webview-wrapper"><webview id="webview1" src="https://intekma.schaeffler-optime.io"></webview></div>
-        <div class="webview-wrapper"><webview id="webview2" src="https://example.com"></webview></div>
-        <div class="webview-wrapper"><webview id="webview3" src="https://example.com"></webview></div>
-        <div class="webview-wrapper"><webview id="webview4" src="https://example.com"></webview></div>
-        <div class="webview-wrapper"><webview id="webview5" src="https://example.com"></webview></div>
-        <div class="webview-wrapper"><webview id="webview6" src="https://example.com"></webview></div>
-        <div class="webview-wrapper"><webview id="webview7" src="https://example.com"></webview></div>
-        <div class="webview-wrapper"><webview id="webview8" src="https://example.com"></webview></div>
-        <div class="webview-wrapper"><webview id="webview9" src="https://example.com"></webview></div>
+        <div class="webview-wrapper"><webview id="webview1"></webview></div>
+        <div class="webview-wrapper"><webview id="webview2"></webview></div>
+        <div class="webview-wrapper"><webview id="webview3"></webview></div>
+        <div class="webview-wrapper"><webview id="webview4"></webview></div>
+        <div class="webview-wrapper"><webview id="webview5"></webview></div>
+        <div class="webview-wrapper"><webview id="webview6"></webview></div>
+        <div class="webview-wrapper"><webview id="webview7"></webview></div>
+        <div class="webview-wrapper"><webview id="webview8"></webview></div>
+        <div class="webview-wrapper"><webview id="webview9"></webview></div>
     </div>
+
+    <div id="refresh-indicator">Last refresh: --:--:--</div>
 
     <script>
         const { ipcRenderer } = require('electron');
+        const fs = require('fs');
+        const path = require('path');
+
         const webviews = document.querySelectorAll('webview');
+        const configPath = path.join(__dirname, 'config.json');
 
-        // Configuration
-        const Y_OFFSET = 0; // Pixels to crop from top (positive crops top, negative crops bottom)
+        // Load configuration from file
+        let config = {
+            yOffset: 0,
+            currentZoom: 1.0,
+            offsetStep: 5,
+            urls: []
+        };
 
-        // Track current zoom factor (1.0 = 100%, 1.5 = 150%, 0.5 = 50%, etc.)
-        let currentZoom = 0.5;
+        try {
+            const configData = fs.readFileSync(configPath, 'utf8');
+            config = JSON.parse(configData);
+            console.log('Loaded config from file:', config);
+        } catch (error) {
+            console.warn('Could not load config.json, using defaults:', error.message);
+        }
 
-        // Apply Y_OFFSET by physically shifting and extending the webview (crops the window)
-        if (Y_OFFSET !== 0) {
-            webviews.forEach((webview) => {
-                webview.style.top = `-${Y_OFFSET}px`;
-                webview.style.height = `calc(100% + ${Math.abs(Y_OFFSET)}px)`;
+        // Configuration variables
+        let yOffset = config.yOffset || 0;
+        let currentZoom = config.currentZoom || 1.0;
+        const OFFSET_STEP = config.offsetStep || 5;
+
+        // Function to save config to file
+        function saveConfig() {
+            config.yOffset = yOffset;
+            config.currentZoom = currentZoom;
+            try {
+                fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+                console.log('Config saved');
+            } catch (error) {
+                console.error('Failed to save config:', error.message);
+            }
+        }
+
+        console.log(`Loaded settings - Y-Offset: ${yOffset}px, Zoom: ${(currentZoom * 100).toFixed(0)}%`);
+
+        // Refresh indicator
+        const refreshIndicator = document.getElementById('refresh-indicator');
+        let lastRefreshTime = new Date();
+
+        function getTimeAgo(date) {
+            const seconds = Math.floor((new Date() - date) / 1000);
+
+            if (seconds < 60) return 'Just now';
+
+            const minutes = Math.floor(seconds / 60);
+            if (minutes < 60) return `${minutes}m ago`;
+
+            const hours = Math.floor(minutes / 60);
+            if (hours < 24) return `${hours}h ago`;
+
+            const days = Math.floor(hours / 24);
+            return `${days}d ago`;
+        }
+
+        function updateRefreshTime() {
+            const timeString = lastRefreshTime.toLocaleTimeString('en-MY', { hour12: false });
+            const timeAgo = getTimeAgo(lastRefreshTime);
+            refreshIndicator.textContent = `Last refresh: ${timeAgo} (${timeString})`;
+        }
+
+        // Update time on load
+        lastRefreshTime = new Date();
+        updateRefreshTime();
+
+        // Update relative time every second
+        setInterval(updateRefreshTime, 1000);
+
+        // Click to reload
+        refreshIndicator.addEventListener('click', () => {
+            location.reload();
+        });
+
+        // Load URLs from config into webviews
+        if (config.urls && config.urls.length > 0) {
+            webviews.forEach((webview, index) => {
+                if (config.urls[index]) {
+                    webview.src = config.urls[index];
+                }
             });
         }
+
+        // Function to apply Y offset to all webviews
+        function applyYOffset() {
+            webviews.forEach((webview) => {
+                webview.style.top = `-${yOffset}px`;
+                webview.style.height = `calc(100% + ${Math.abs(yOffset)}px)`;
+            });
+            saveConfig();
+            console.log(`Y-Offset: ${yOffset}px`);
+        }
+
+        // Apply initial offset
+        applyYOffset();
+
+        // Handle offset commands from main process
+        ipcRenderer.on('offset-increase', () => {
+            yOffset += OFFSET_STEP; // Crop more from top
+            applyYOffset();
+        });
+
+        ipcRenderer.on('offset-decrease', () => {
+            yOffset -= OFFSET_STEP; // Crop less from top
+            applyYOffset();
+        });
+
+        ipcRenderer.on('offset-reset', () => {
+            yOffset = 0; // Reset offset
+            applyYOffset();
+        });
 
         webviews.forEach((webview, index) => {
             webview.addEventListener('did-fail-load', (event) => {
@@ -99,6 +225,7 @@
             webviews.forEach(webview => {
                 webview.setZoomFactor(currentZoom);
             });
+            saveConfig();
             console.log('Zoom factor:', (currentZoom * 100).toFixed(0) + '%');
         });
 
@@ -108,6 +235,7 @@
             webviews.forEach(webview => {
                 webview.setZoomFactor(currentZoom);
             });
+            saveConfig();
             console.log('Zoom factor:', (currentZoom * 100).toFixed(0) + '%');
         });
 
@@ -116,6 +244,7 @@
             webviews.forEach(webview => {
                 webview.setZoomFactor(currentZoom);
             });
+            saveConfig();
             console.log('Zoom factor reset to: 100%');
         });
     </script>
