@@ -184,17 +184,7 @@
     </style>
 </head>
 <body>
-    <div class="grid-container">
-        <div class="webview-wrapper"><webview id="webview1"></webview></div>
-        <div class="webview-wrapper"><webview id="webview2"></webview></div>
-        <div class="webview-wrapper"><webview id="webview3"></webview></div>
-        <div class="webview-wrapper"><webview id="webview4"></webview></div>
-        <div class="webview-wrapper"><webview id="webview5"></webview></div>
-        <div class="webview-wrapper"><webview id="webview6"></webview></div>
-        <div class="webview-wrapper"><webview id="webview7"></webview></div>
-        <div class="webview-wrapper"><webview id="webview8"></webview></div>
-        <div class="webview-wrapper"><webview id="webview9"></webview></div>
-    </div>
+    <div class="grid-container" id="grid-container"></div>
 
     <div id="controls-container">
       <div id="settings-icon" class="floating-control">
@@ -205,6 +195,16 @@
 
     <div id="settings-panel">
         <h3>Settings</h3>
+
+        <div class="setting-item">
+            <label>Grid Rows</label>
+            <input type="number" id="setting-rows" min="1" max="10" value="3">
+        </div>
+
+        <div class="setting-item">
+            <label>Grid Columns</label>
+            <input type="number" id="setting-columns" min="1" max="10" value="3">
+        </div>
 
         <div class="setting-item">
             <label>Y-Offset (px)</label>
@@ -222,44 +222,9 @@
         </div>
 
         <div class="setting-item">
-            <label>URLs (9 cells)</label>
-            <div class="url-list">
-                <div class="url-item">
-                    <label>Cell 1 (Top-Left)</label>
-                    <input type="text" class="url-input" data-index="0" value="">
-                </div>
-                <div class="url-item">
-                    <label>Cell 2 (Top-Center)</label>
-                    <input type="text" class="url-input" data-index="1" value="">
-                </div>
-                <div class="url-item">
-                    <label>Cell 3 (Top-Right)</label>
-                    <input type="text" class="url-input" data-index="2" value="">
-                </div>
-                <div class="url-item">
-                    <label>Cell 4 (Middle-Left)</label>
-                    <input type="text" class="url-input" data-index="3" value="">
-                </div>
-                <div class="url-item">
-                    <label>Cell 5 (Middle-Center)</label>
-                    <input type="text" class="url-input" data-index="4" value="">
-                </div>
-                <div class="url-item">
-                    <label>Cell 6 (Middle-Right)</label>
-                    <input type="text" class="url-input" data-index="5" value="">
-                </div>
-                <div class="url-item">
-                    <label>Cell 7 (Bottom-Left)</label>
-                    <input type="text" class="url-input" data-index="6" value="">
-                </div>
-                <div class="url-item">
-                    <label>Cell 8 (Bottom-Center)</label>
-                    <input type="text" class="url-input" data-index="7" value="">
-                </div>
-                <div class="url-item">
-                    <label>Cell 9 (Bottom-Right)</label>
-                    <input type="text" class="url-input" data-index="8" value="">
-                </div>
+            <label>URLs</label>
+            <div class="url-list" id="url-list">
+                <!-- URLs will be generated dynamically -->
             </div>
         </div>
 
@@ -274,12 +239,14 @@
         const fs = require('fs');
         const path = require('path');
 
-        const webviews = document.querySelectorAll('webview');
         const configPath = path.join(__dirname, 'config.json');
         const defaultConfigPath = path.join(__dirname, 'config.default.json');
+        const gridContainer = document.getElementById('grid-container');
 
         // Load configuration from file
         let config = {
+            rows: 3,
+            columns: 3,
             yOffset: 0,
             currentZoom: 1.0,
             offsetStep: 5,
@@ -323,7 +290,42 @@
             }
         }
 
-        console.log(`Loaded settings - Y-Offset: ${yOffset}px, Zoom: ${(currentZoom * 100).toFixed(0)}%`);
+        console.log(`Loaded settings - Grid: ${config.rows}x${config.columns}, Y-Offset: ${yOffset}px, Zoom: ${(currentZoom * 100).toFixed(0)}%`);
+
+        // Generate grid dynamically
+        function generateGrid() {
+            const rows = config.rows || 3;
+            const columns = config.columns || 3;
+            const totalCells = rows * columns;
+
+            // Update CSS grid template
+            gridContainer.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+            gridContainer.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
+
+            // Clear existing grid
+            gridContainer.innerHTML = '';
+
+            // Create webviews
+            for (let i = 0; i < totalCells; i++) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'webview-wrapper';
+
+                const webview = document.createElement('webview');
+                webview.id = `webview${i + 1}`;
+                webview.src = config.urls[i] || 'about:blank';
+
+                wrapper.appendChild(webview);
+                gridContainer.appendChild(wrapper);
+            }
+
+            console.log(`Generated ${rows}x${columns} grid with ${totalCells} cells`);
+        }
+
+        // Generate the initial grid
+        generateGrid();
+
+        // Get all webviews after generation
+        const webviews = document.querySelectorAll('webview');
 
         // Refresh indicator
         const refreshIndicator = document.getElementById('refresh-indicator');
@@ -453,15 +455,61 @@
 
         // Populate settings panel with current config
         function populateSettings() {
+            document.getElementById('setting-rows').value = config.rows || 3;
+            document.getElementById('setting-columns').value = config.columns || 3;
             document.getElementById('setting-yoffset').value = yOffset;
             document.getElementById('setting-zoom').value = currentZoom;
             document.getElementById('setting-offsetstep').value = OFFSET_STEP;
 
-            const urlInputs = document.querySelectorAll('.url-input');
-            urlInputs.forEach((input, index) => {
-                input.value = config.urls[index] || '';
-            });
+            // Generate URL inputs dynamically
+            generateURLInputs();
         }
+
+        // Convert column number to Excel-style letter (0->A, 1->B, 25->Z, 26->AA)
+        function getExcelColumn(colIndex) {
+            let column = '';
+            let temp = colIndex;
+            while (temp >= 0) {
+                column = String.fromCharCode(65 + (temp % 26)) + column;
+                temp = Math.floor(temp / 26) - 1;
+            }
+            return column;
+        }
+
+        // Generate URL inputs based on grid size
+        function generateURLInputs() {
+            const rows = parseInt(document.getElementById('setting-rows').value) || 3;
+            const columns = parseInt(document.getElementById('setting-columns').value) || 3;
+            const totalCells = rows * columns;
+            const urlList = document.getElementById('url-list');
+
+            urlList.innerHTML = '';
+
+            for (let i = 0; i < totalCells; i++) {
+                const urlItem = document.createElement('div');
+                urlItem.className = 'url-item';
+
+                const label = document.createElement('label');
+                const row = Math.floor(i / columns) + 1;
+                const col = i % columns;
+                const excelRef = getExcelColumn(col) + row;
+                label.textContent = `Cell ${excelRef}`;
+
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.className = 'url-input';
+                input.dataset.index = i;
+                input.value = config.urls[i] || '';
+
+                urlItem.appendChild(label);
+                urlItem.appendChild(input);
+                urlList.appendChild(urlItem);
+            }
+        }
+
+        // Update URL inputs when rows/columns change
+        document.getElementById('setting-rows').addEventListener('input', generateURLInputs);
+        document.getElementById('setting-columns').addEventListener('input', generateURLInputs);
 
         // Toggle settings panel
         settingsIcon.addEventListener('click', (e) => {
@@ -478,6 +526,8 @@
         // Save settings
         settingsSaveBtn.addEventListener('click', () => {
             // Update config object
+            config.rows = parseInt(document.getElementById('setting-rows').value) || 3;
+            config.columns = parseInt(document.getElementById('setting-columns').value) || 3;
             config.yOffset = parseFloat(document.getElementById('setting-yoffset').value) || 0;
             config.currentZoom = parseFloat(document.getElementById('setting-zoom').value) || 1.0;
             config.offsetStep = parseInt(document.getElementById('setting-offsetstep').value) || 5;
