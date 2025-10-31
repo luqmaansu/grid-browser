@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3x3 Grid Browser</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background-color: #1e1e1e;
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            width: 100%;
+            height: 100%;
+            gap: 2px;
+            background-color: #333;
+            overflow: hidden;
+        }
+
+        .webview-wrapper {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            position: relative;
+        }
+
+        webview {
+            width: 100%;
+            height: 100%;
+            border: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="grid-container">
+        <div class="webview-wrapper"><webview id="webview1" src="https://intekma.schaeffler-optime.io"></webview></div>
+        <div class="webview-wrapper"><webview id="webview2" src="https://example.com"></webview></div>
+        <div class="webview-wrapper"><webview id="webview3" src="https://example.com"></webview></div>
+        <div class="webview-wrapper"><webview id="webview4" src="https://example.com"></webview></div>
+        <div class="webview-wrapper"><webview id="webview5" src="https://example.com"></webview></div>
+        <div class="webview-wrapper"><webview id="webview6" src="https://example.com"></webview></div>
+        <div class="webview-wrapper"><webview id="webview7" src="https://example.com"></webview></div>
+        <div class="webview-wrapper"><webview id="webview8" src="https://example.com"></webview></div>
+        <div class="webview-wrapper"><webview id="webview9" src="https://example.com"></webview></div>
+    </div>
+
+    <script>
+        const { ipcRenderer } = require('electron');
+        const webviews = document.querySelectorAll('webview');
+
+        // Configuration
+        const Y_OFFSET = 0; // Pixels to crop from top (positive crops top, negative crops bottom)
+
+        // Track current zoom factor (1.0 = 100%, 1.5 = 150%, 0.5 = 50%, etc.)
+        let currentZoom = 0.5;
+
+        // Apply Y_OFFSET by physically shifting and extending the webview (crops the window)
+        if (Y_OFFSET !== 0) {
+            webviews.forEach((webview) => {
+                webview.style.top = `-${Y_OFFSET}px`;
+                webview.style.height = `calc(100% + ${Math.abs(Y_OFFSET)}px)`;
+            });
+        }
+
+        webviews.forEach((webview, index) => {
+            webview.addEventListener('did-fail-load', (event) => {
+                console.log(`Webview ${index + 1} failed to load:`, event.errorDescription);
+            });
+
+            webview.addEventListener('did-start-loading', () => {
+                console.log(`Webview ${index + 1} started loading`);
+            });
+
+            webview.addEventListener('did-finish-load', () => {
+                console.log(`Webview ${index + 1} finished loading`);
+                // Apply current zoom factor to newly loaded webview
+                webview.setZoomFactor(currentZoom);
+            });
+        });
+
+        // Handle zoom commands from main process
+        ipcRenderer.on('zoom-in', () => {
+            currentZoom += 0.1; // Increase by 10%
+            webviews.forEach(webview => {
+                webview.setZoomFactor(currentZoom);
+            });
+            console.log('Zoom factor:', (currentZoom * 100).toFixed(0) + '%');
+        });
+
+        ipcRenderer.on('zoom-out', () => {
+            currentZoom -= 0.1; // Decrease by 10%
+            if (currentZoom < 0.1) currentZoom = 0.1; // Minimum 10%
+            webviews.forEach(webview => {
+                webview.setZoomFactor(currentZoom);
+            });
+            console.log('Zoom factor:', (currentZoom * 100).toFixed(0) + '%');
+        });
+
+        ipcRenderer.on('zoom-reset', () => {
+            currentZoom = 1.0; // Reset to 100%
+            webviews.forEach(webview => {
+                webview.setZoomFactor(currentZoom);
+            });
+            console.log('Zoom factor reset to: 100%');
+        });
+    </script>
+</body>
+</html>
