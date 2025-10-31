@@ -54,7 +54,7 @@
             padding: 4px 8px;
             border-radius: 4px;
             font-family: monospace;
-            font-size: 12px;
+            font-size: 10px;
             cursor: pointer;
             z-index: 9999;
             user-select: none;
@@ -92,6 +92,7 @@
 
         const webviews = document.querySelectorAll('webview');
         const configPath = path.join(__dirname, 'config.json');
+        const defaultConfigPath = path.join(__dirname, 'config.default.json');
 
         // Load configuration from file
         let config = {
@@ -101,6 +102,18 @@
             urls: []
         };
 
+        // If config.json doesn't exist, create it from config.default.json
+        if (!fs.existsSync(configPath)) {
+            try {
+                const defaultConfig = fs.readFileSync(defaultConfigPath, 'utf8');
+                fs.writeFileSync(configPath, defaultConfig);
+                console.log('Created config.json from default');
+            } catch (error) {
+                console.warn('Could not create config.json from default:', error.message);
+            }
+        }
+
+        // Load config.json
         try {
             const configData = fs.readFileSync(configPath, 'utf8');
             config = JSON.parse(configData);

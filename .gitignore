@@ -86,3 +86,6 @@ Thumbs.db
 *.swp
 *.swo
 *~
+
+# User-specific config (personalized settings)
+config.json
