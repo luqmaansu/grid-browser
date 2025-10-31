@@ -1,10 +1,28 @@
 {
   "name": "grid-browser",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Grid Browser using Electron",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "build": "electron-builder --win",
+    "build:dir": "electron-builder --win --dir"
+  },
+  "build": {
+    "appId": "com.gridbrowser.app",
+    "productName": "Grid Browser",
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "files": [
+      "**/*",
+      "!node_modules/@electron/**/*"
+    ],
+    "directories": {
+      "output": "dist"
+    }
   },
   "keywords": [
     "electron",
@@ -14,6 +32,7 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
-    "electron": "^39.0.0"
+    "electron": "^39.0.0",
+    "electron-builder": "^26.0.12"
   }
 }

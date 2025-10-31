@@ -1,5 +1,10 @@
-const { app, BrowserWindow, Menu } = require('electron');
+const { app, BrowserWindow, Menu, ipcMain } = require('electron');
 const path = require('path');
+
+// Handle request for userData path from renderer
+ipcMain.handle('get-user-data-path', () => {
+  return app.getPath('userData');
+});
 
 function createWindow() {
   const mainWindow = new BrowserWindow({
@@ -8,7 +13,8 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
-      webviewTag: true
+      webviewTag: true,
+      preload: path.join(__dirname, 'preload.js')
     }
   });
 

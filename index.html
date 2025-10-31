@@ -239,9 +239,31 @@
         const fs = require('fs');
         const path = require('path');
 
-        const configPath = path.join(__dirname, 'config.json');
+        // Get userData path from main process (async)
+        let userDataPath;
+        let configPath;
         const defaultConfigPath = path.join(__dirname, 'config.default.json');
         const gridContainer = document.getElementById('grid-container');
+
+        // Initialize app with userData path
+        (async function init() {
+            userDataPath = await window.getUserDataPath();
+            configPath = path.join(userDataPath, 'config.json');
+
+            console.log('User data path:', userDataPath);
+            console.log('Config will be saved to:', configPath);
+            console.log('Default config location:', defaultConfigPath);
+
+            // Ensure userData directory exists
+            if (!fs.existsSync(userDataPath)) {
+                fs.mkdirSync(userDataPath, { recursive: true });
+            }
+
+            // Continue with app initialization
+            loadConfigAndStart();
+        })();
+
+        function loadConfigAndStart() {
 
         // Load configuration from file
         let config = {
@@ -558,6 +580,8 @@
                 settingsPanel.classList.remove('visible');
             }
         });
+
+        } // End of loadConfigAndStart()
     </script>
 </body>
 </html>
