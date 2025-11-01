@@ -4,6 +4,7 @@ A customizable grid browser built with Electron that displays multiple websites 
 
 [![Release](https://img.shields.io/badge/release-v0.1.0-blue)](https://github.com/luqmaansu/grid-browser/releases/latest)
 [![Download](https://img.shields.io/badge/download-installer-brightgreen)](https://github.com/luqmaansu/grid-browser/releases/latest)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## Features
 
